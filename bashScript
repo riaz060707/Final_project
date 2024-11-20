@@ -1,0 +1,79 @@
+FastQC
+export PATH=$PATH:/project/stuckert/mrchy/FINAL_project/SRAtoolkit/sratoolkit.3.1.1-ubuntu64/bin
+source ~/.bashrc
+
+export PATH=$PATH:/project/stuckert/mrchy/FINAL_project/software/fastQC/FastQC
+source ~/.bashrc
+fastqc -o FastqcRep *.fastq
+Fastp 
+export PATH=$PATH:/project/stuckert/mrchy/FINAL_project/software/FASTP
+source ~/.bashrc
+
+fastp -i SRR12158937_1.fastq -I SRR12158937_2.fastq -o LC_37R1.fastq -O LC_37R2.fastq
+fastp -i SRR12158938_1.fastq -I SRR12158938_2.fastq -o LC_38R1.fastq -O LC_38R2.fastq
+fastp -i SRR12158939_1.fastq -I SRR12158939_2.fastq -o LC_39R1.fastq -O LC_39R2.fastq
+fastp -i SRR12201311_1.fastq -I SRR12201311_2.fastq -o CR_11R1.fastq -O CR_11R2.fastq
+fastp -i SRR12201312_1.fastq -I SRR12201312_2.fastq -o CR_12R1.fastq -O CR_12R2.fastq
+fastp -i SRR12201313_1.fastq -I SRR12201313_2.fastq -o CR_13R1.fastq -O CR_13R2.fastq
+
+Access HISAT2
+Differential expression of genes using HISAT2, featureCounts and Voom
+
+Hisat2
+git clone https://github.com/DaehwanKimLab/hisat2.git
+cd hisat2
+make
+
+export PATH=$PATH:/project/stuckert/mrchy/FINAL_project/software/Hisat2/hisat2/
+source ~/.bashrc
+
+hisat2 -p 1 --dta -x /project/stuckert/mrchy/FINAL_project/Genome/GCF_000002035.6 -1 /project/stuckert/mrchy/FINAL_project/LC_37R1.fastq \
+-2 /project/stuckert/mrchy/FINAL_project/LC_37R2.fastq -S LC_37.sam 2> LC_37.summary.txt
+
+
+# Load HISAT2 module if necessary
+export PATH=$PATH:/project/stuckert/mrchy/FINAL_project/software/Hisat2/hisat2/
+source ~/.bashrc
+
+# Define the path to the HISAT2 index
+INDEX_PATH="/project/stuckert/mrchy/FINAL_project/Genome/GCF_000002035.6"
+
+# Define the directory where the fastq files are located
+FASTQ_DIR="/project/stuckert/mrchy/FINAL_project"
+
+# Define an output directory for the SAM and summary files
+OUTPUT_DIR="/project/stuckert/mrchy/FINAL_project/output"
+mkdir -p $OUTPUT_DIR
+
+# Array of sample names (without R1/R2 or extensions)
+samples=("LC_38" "LC_39" "CR_11" "CR_12" "CR_13")
+
+# Loop through each sample and run HISAT2
+for sample in "${samples[@]}"
+do
+    # Define file paths for forward (R1) and reverse (R2) reads
+    forward_read="${FASTQ_DIR}/${sample}R1.fastq"
+    reverse_read="${FASTQ_DIR}/${sample}R2.fastq"
+
+    # Define output SAM file and summary file
+    output_sam="${OUTPUT_DIR}/${sample}.sam"
+    summary_file="${OUTPUT_DIR}/${sample}.summary.csv"
+
+    # Run HISAT2 for each sample
+    hisat2 -p 1 --dta -x $INDEX_PATH -1 $forward_read -2 $reverse_read -S $output_sam 2> $summary_file 2>&1
+
+    echo "Processed ${sample}"
+done
+
+echo "All samples processed successfully."
+
+
+Assign aligned RNA-Seq reads to gene features using featureCounts
+
+featureCounts -T 1 -p -t mRNA -g gene -O -a /project/stuckert/mrchy/FINAL_project/Genome/GCF_000002035.6_GRCz11_genomic.gff -o count.LC37.txt LC_37.sam
+featureCounts -T 1 -p -t mRNA -g gene -O -a /project/stuckert/mrchy/FINAL_project/Genome/GCF_000002035.6_GRCz11_genomic.gff -o count.LC38.txt LC_38.sam
+featureCounts -T 1 -p -t mRNA -g gene -O -a /project/stuckert/mrchy/FINAL_project/Genome/GCF_000002035.6_GRCz11_genomic.gff -o count.LC39.txt LC_39.sam
+featureCounts -T 1 -p -t mRNA -g gene -O -a /project/stuckert/mrchy/FINAL_project/Genome/GCF_000002035.6_GRCz11_genomic.gff -o count.CR11.txt CR_11.sam
+featureCounts -T 1 -p -t mRNA -g gene -O -a /project/stuckert/mrchy/FINAL_project/Genome/GCF_000002035.6_GRCz11_genomic.gff -o count.CR12.txt CR_12.sam
+featureCounts -T 1 -p -t mRNA -g gene -O -a /project/stuckert/mrchy/FINAL_project/Genome/GCF_000002035.6_GRCz11_genomic.gff -o count.CR13.txt CR_13.sam
+
